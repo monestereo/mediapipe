@@ -89,6 +89,7 @@ android_library(
         "@androidx_lifecycle//jar",
         "@com_google_code_findbugs//jar",
         "@com_google_guava_android//jar",
+        "@maven//:io_socket_socket_io_client"
     ],
 )
 

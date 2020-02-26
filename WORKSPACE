@@ -225,6 +225,7 @@ maven_install(
         "androidx.legacy:legacy-support-v4:aar:1.0.0",
         "androidx.recyclerview:recyclerview:aar:1.1.0-beta02",
         "com.google.android.material:material:aar:1.0.0-rc01",
+        "io.socket:socket.io-client:1.0.0",
     ],
     repositories = [
         "https://dl.google.com/dl/android/maven2",
@@ -274,6 +275,13 @@ maven_jar(
     artifact = "com.google.code.findbugs:jsr305:3.0.2",
     sha1 = "25ea2e8b0c338a877313bd4672d3fe056ea78f0d",
 )
+
+maven_jar(
+    name = "io_socket_socket_io_client",
+    artifact = "io.socket:socket.io-client:1.0.0",
+#    sha1 = "25ea2e8b0c338a877313bd4672d3fe056ea78f0d",
+)
+
 
 # You may run setup_android.sh to install Android SDK and NDK.
 android_ndk_repository(

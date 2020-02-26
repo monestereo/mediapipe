@@ -33,7 +33,16 @@ import com.google.mediapipe.components.PermissionHelper;
 import com.google.mediapipe.framework.AndroidAssetUtil;
 import com.google.mediapipe.framework.PacketGetter;
 import com.google.mediapipe.glutil.EglManager;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+
+import java.net.URISyntaxException;
 import java.util.List;
+
+import io.socket.client.IO;
+import io.socket.client.Socket;
+
 
 /** Main activity of MediaPipe example apps. */
 public class MainActivity extends AppCompatActivity {
@@ -50,6 +59,12 @@ public class MainActivity extends AppCompatActivity {
   // This is needed because OpenGL represents images assuming the image origin is at the bottom-left
   // corner, whereas MediaPipe in general assumes the image origin is at top-left.
   private static final boolean FLIP_FRAMES_VERTICALLY = true;
+  private Socket mSocket;
+  {
+    try {
+      mSocket = IO.socket("http://192.168.178.20:8080");
+    } catch (URISyntaxException e) {}
+  }
 
   static {
     // Load all native libraries needed by the app.
@@ -83,6 +98,8 @@ public class MainActivity extends AppCompatActivity {
     setupPreviewDisplayView();
 
     // Initialize asset manager so that MediaPipe native libraries can access the app assets, e.g.,
+    mSocket.connect();
+
     // binary graphs.
     AndroidAssetUtil.initializeNativeAssetManager(this);
 
@@ -96,19 +113,31 @@ public class MainActivity extends AppCompatActivity {
             OUTPUT_VIDEO_STREAM_NAME);
     processor.getVideoSurfaceOutput().setFlipY(FLIP_FRAMES_VERTICALLY);
 
-    processor.addPacketCallback(
-        OUTPUT_LANDMARKS_STREAM_NAME,
-        (packet) -> {
-          Log.d(TAG, "Received multi-hand landmarks packet.");
-          List<NormalizedLandmarkList> multiHandLandmarks =
-              PacketGetter.getProtoVector(packet, NormalizedLandmarkList.parser());
-          Log.d(
-              TAG,
-              "[TS:"
-                  + packet.getTimestamp()
-                  + "] "
-                  + getMultiHandLandmarksDebugString(multiHandLandmarks));
-        });
+    processor.addPacketCallback(OUTPUT_LANDMARKS_STREAM_NAME, (packet) -> {
+      Log.d(TAG, "Received multi-hand landmarks packet.");
+      List<NormalizedLandmarkList> multiHandLandmarks = PacketGetter.getProtoVector(packet,
+          NormalizedLandmarkList.parser());
+      Log.d(TAG, "[TS:" + packet.getTimestamp() + "] " + getMultiHandLandmarksDebugString(multiHandLandmarks));
+      JSONArray hands = new JSONArray();
+      if (!multiHandLandmarks.isEmpty()) {
+        try {
+          for (NormalizedLandmarkList landmarks : multiHandLandmarks) {
+            JSONArray lms = new JSONArray();
+            for (NormalizedLandmark landmark : landmarks.getLandmarkList()) {
+              JSONArray lmPos = new JSONArray();
+              lmPos.put(landmark.getX());
+              lmPos.put(landmark.getY());
+              lmPos.put(landmark.getZ());
+              lms.put(lmPos);
+            }
+            hands.put(lms);
+          }
+          mSocket.emit("data", hands.toString());
+        } catch ( JSONException e) {
+
+        }
+      }
+    });
 
     PermissionHelper.checkAndRequestCameraPermissions(this);
   }
